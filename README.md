@@ -272,6 +272,13 @@ putnami{
         /** disable this internal server */
         noServer = false
 		
+		/** shown all compile errors **/
+		strict = false
+		
+		/** disable this internal server **/
+		noServer = false
+		
+		
 		/** Java args */
 		maxHeapSize="1024m"
 		minHeapSize="512m"
