@@ -21,6 +21,7 @@ import org.gradle.internal.jvm.Jvm;
 
 import java.io.File;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.List;
 
 import fr.putnami.gwt.gradle.extension.JavaOption;
@@ -102,43 +103,44 @@ public abstract class JavaCommandBuilder {
 		}
 	}
 
-	@Override
-	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		sb.append(javaExec);
+//	@Override
+//	public String toString() {
+//		return StringUtils.join(" ", toStringArray());
+//	}
+
+	public String[] toStringArray() {
+		List<String> pieces = new ArrayList<String>();
+		pieces.add(javaExec);
 
 		for (String arg : javaArgs) {
-			if (!Strings.isNullOrEmpty(arg)) {
-				sb.append(" ");
-				sb.append(arg);
-			}
+			pieces.add(arg);
 		}
 
 		if (classPaths.size() > 0) {
-			sb.append(" -cp ");
+			pieces.add("-cp");
 			int i = 0;
+			StringBuilder sb = new StringBuilder();
 			for (String classPath : classPaths) {
 				if (!Strings.isNullOrEmpty(classPath.trim())) {
-					if (i > 0) {
+					if (sb.length() > 0) {
 						sb.append(System.getProperty("path.separator"));
 					}
 					sb.append(classPath.trim());
 					i++;
 				}
 			}
+			pieces.add(sb.toString());
 		}
 
-		sb.append(" ");
-		sb.append(mainClass);
+		pieces.add(mainClass);
 
 		for (String arg : args) {
 			if (!Strings.isNullOrEmpty(arg)) {
-				sb.append(" ");
-				sb.append(arg);
+				pieces.add(arg);
 			}
 		}
 
-		return sb.toString();
+		return pieces.toArray(new String[0]);
 	}
 
 	public void configureJavaArgs(JavaOption javaOptions) {

@@ -93,7 +93,7 @@ public class CodeServerBuilder extends JavaCommandBuilder {
 	}
 
 	public JavaAction buildJavaAction() {
-		return new JavaAction(this.toString());
+		return new JavaAction(this.toStringArray());
 	}
 
 	private Collection<File> listProjectDepsSrcDirs(Project project) {

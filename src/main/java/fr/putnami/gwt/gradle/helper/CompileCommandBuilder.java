@@ -91,6 +91,6 @@ public class CompileCommandBuilder extends JavaCommandBuilder {
 	}
 
 	public JavaAction buildJavaAction() {
-		return new JavaAction(this.toString());
+		return new JavaAction(this.toStringArray());
 	}
 }
