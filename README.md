@@ -1,9 +1,11 @@
+##This project is no longer maintained
+
+>**A fork of it that is still supported and has a newer release is available at https://github.com/esoco/gwt-gradle-plugin. Please use the new version if you need GWT support for Gradle.**  
+
+- - -
+ 
 Putnami Gradle Plugin
-===================
-
-Travis build status [![Build Status](https://travis-ci.org/Putnami/putnami-gradle-plugin.svg?branch=master)](https://travis-ci.org/Putnami/putnami-gradle-plugin)
-
-===================
+---------------------
 
 This plugin helps to build GWT project with Gradle. The main goals is build webapps and libraries.
 
