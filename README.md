@@ -1,4 +1,4 @@
-##This project is no longer maintained
+## This project is no longer maintained
 
 >**A fork of it that is still supported and has a newer release is available at https://github.com/esoco/gwt-gradle-plugin. Please use the new version if you need GWT support for Gradle.**  
 
