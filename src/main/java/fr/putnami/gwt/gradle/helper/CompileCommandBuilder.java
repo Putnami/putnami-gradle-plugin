@@ -25,10 +25,12 @@ import java.util.Collection;
 import fr.putnami.gwt.gradle.PwtLibPlugin;
 import fr.putnami.gwt.gradle.action.JavaAction;
 import fr.putnami.gwt.gradle.extension.CompilerOption;
+import fr.putnami.gwt.gradle.task.GwtCompileTask;
 
 public class CompileCommandBuilder extends JavaCommandBuilder {
 
 	public CompileCommandBuilder() {
+		super();
 		setMainClass("com.google.gwt.dev.Compiler");
 	}
 
@@ -36,7 +38,9 @@ public class CompileCommandBuilder extends JavaCommandBuilder {
 		Collection<String> modules) {
 		Configuration sdmConf = project.getConfigurations().getByName(PwtLibPlugin.CONF_GWT_SDM);
 		Configuration compileConf = project.getConfigurations().getByName(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME);
-
+		Configuration gwtSource = project.getConfigurations().getByName(GwtCompileTask.GWT_SOURCE_CONFIG);
+		
+		setPathingJar(compilerOptions.getPathingJar());
 		configureJavaArgs(compilerOptions);
 		addJavaArgs("-Dgwt.persistentunitcachedir=" + project.getBuildDir() + "/putnami/work/cache");
 
@@ -46,6 +50,7 @@ public class CompileCommandBuilder extends JavaCommandBuilder {
 
 		addClassPath(compileConf.getAsPath());
 		addClassPath(sdmConf.getAsPath());
+		addSeparateClassPath(gwtSource.getAsPath());
 
 		addArg("-war", war);
 		addArg("-extra", compilerOptions.getExtra());
@@ -91,6 +96,6 @@ public class CompileCommandBuilder extends JavaCommandBuilder {
 	}
 
 	public JavaAction buildJavaAction() {
-		return new JavaAction(this.toString());
+		return new JavaAction(this.toJava());
 	}
 }

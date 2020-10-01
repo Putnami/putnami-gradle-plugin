@@ -38,6 +38,7 @@ public class JettyServerBuilder extends JavaCommandBuilder {
 		Configuration runtimeConf = configs.getByName(WarPlugin.PROVIDED_RUNTIME_CONFIGURATION_NAME);
 		Configuration jettyClassPath = configs.getByName(PwtLibPlugin.CONF_JETTY);
 
+		setPathingJar(jettyOption.getPathingJar());
 		configureJavaArgs(jettyOption);
 
 		addClassPath(jettyClassPath.getAsPath());
@@ -60,6 +61,6 @@ public class JettyServerBuilder extends JavaCommandBuilder {
 	}
 
 	public JavaAction buildJavaAction() {
-		return new JavaAction(this.toString());
+		return new JavaAction(this.toJava());
 	}
 }

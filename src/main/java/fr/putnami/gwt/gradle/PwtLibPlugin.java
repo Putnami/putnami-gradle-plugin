@@ -36,9 +36,9 @@ public class PwtLibPlugin implements Plugin<Project> {
 	public static final String CONF_GWT_SDM = "gwtSdk";
 	public static final String CONF_JETTY = "jettyConf";
 
-	private static final String ECLIPSE_NATURE = "com.google.gwt.eclipse.core.gwtNature";
-	private static final String ECLIPSE_BUILDER_PROJECT_VALIDATOR = "com.google.gwt.eclipse.core.gwtProjectValidator";
-	private static final String ECLIPSE_BUILDER_WEBAPP_VALIDATOR = "com.google.gdt.eclipse.core.webAppProjectValidator";
+	private static final String ECLIPSE_NATURE = "com.gwtplugins.gwt.eclipse.core.gwtNature";
+	private static final String ECLIPSE_BUILDER_PROJECT_VALIDATOR = "com.gwtplugins.gwt.eclipse.core.gwtProjectValidator";
+	private static final String ECLIPSE_BUILDER_WEBAPP_VALIDATOR = "com.gwtplugins.gdt.eclipse.core.webAppProjectValidator";
 
 	@Override
 	public void apply(Project project) {

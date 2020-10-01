@@ -14,7 +14,7 @@ buildscript {
 apply plugin: 'java'
 apply plugin: 'maven'
 apply plugin: 'maven-publish'
-apply plugin: 'checkstyle'
+//apply plugin: 'checkstyle'
 apply plugin: 'license'
 apply plugin: 'signing'
 apply plugin: "com.gradle.plugin-publish"
@@ -34,9 +34,9 @@ dependencies {
 	compile "com.google.guava:guava:23.5-jre"
 }
 
-checkstyle{
-	configFile rootProject.file('settings/checkstyle/pwt-checkstyle.xml')
-}
+//checkstyle {
+//	configFile rootProject.file('settings/checkstyle/pwt-checkstyle.xml')
+//}
 
 license {
 	skipExistingHeaders = true

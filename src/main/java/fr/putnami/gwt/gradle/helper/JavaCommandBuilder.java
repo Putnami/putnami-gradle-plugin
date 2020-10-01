@@ -14,36 +14,79 @@
  */
 package fr.putnami.gwt.gradle.helper;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 
-import org.gradle.internal.jvm.Jvm;
-
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.List;
 
 import fr.putnami.gwt.gradle.extension.JavaOption;
 
 public abstract class JavaCommandBuilder {
+	
+	private static final PathAccumulator NO_PATHING_JAR = new PathAccumulator() {
+		private final List<String> paths = new ArrayList<>();
+		
+		@Override
+		public String get() {
+			return Joiner.on(File.pathSeparator).join(paths);
+		}
 
-	private final String javaExec;
+		@Override
+		public String[] getArray() {
+			return paths.toArray(new String[0]);
+		}
+
+		@Override
+		public void add(String classPath) {
+			paths.add(classPath);
+		}
+		
+		@Override
+		public void makeJar() throws IOException {
+			// noop
+		}
+	};
+
 	private final List<String> javaArgs = Lists.newArrayList();
-	private final List<String> classPaths = Lists.newArrayList();
 	private String mainClass;
 	private final List<String> args = Lists.newArrayList();
+	private final List<String> separateClassPath = new ArrayList<>();
 
+	private PathAccumulator pathAccumulator;
+	
 	public JavaCommandBuilder() {
-		this.javaExec = Jvm.current().getJavaExecutable().getAbsolutePath();
+		this.pathAccumulator = NO_PATHING_JAR;
 		javaArgs.add("-Dfile.encoding=" + Charset.defaultCharset().name());
 	}
 
 	public void setMainClass(String mainClass) {
 		this.mainClass = mainClass;
 	}
+	
+	public String getMainClass() {
+		return mainClass;
+	}
+
+	public void setPathingJar(String pathingJar) {
+		if (pathingJar == null) {
+			this.pathAccumulator = NO_PATHING_JAR;
+		} else {
+			this.pathAccumulator = new PathingJarCreator(new File(pathingJar));
+		}
+	}
+
+	public JavaCommandBuilder addSeparateClassPath(String classPath) {
+		this.separateClassPath.add(classPath);
+		return this;
+	}
 
 	public JavaCommandBuilder addClassPath(String classPath) {
-		this.classPaths.add(classPath);
+		this.pathAccumulator.add(classPath);
 		return this;
 	}
 
@@ -101,44 +144,18 @@ public abstract class JavaCommandBuilder {
 			this.args.add(value);
 		}
 	}
-
-	@Override
-	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		sb.append(javaExec);
-
-		for (String arg : javaArgs) {
-			if (!Strings.isNullOrEmpty(arg)) {
-				sb.append(" ");
-				sb.append(arg);
-			}
+	
+	public JavaExecutor toJava() {
+		try {
+			pathAccumulator.makeJar();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
 		}
 
-		if (classPaths.size() > 0) {
-			sb.append(" -cp ");
-			int i = 0;
-			for (String classPath : classPaths) {
-				if (!Strings.isNullOrEmpty(classPath.trim())) {
-					if (i > 0) {
-						sb.append(System.getProperty("path.separator"));
-					}
-					sb.append(classPath.trim());
-					i++;
-				}
-			}
-		}
-
-		sb.append(" ");
-		sb.append(mainClass);
-
-		for (String arg : args) {
-			if (!Strings.isNullOrEmpty(arg)) {
-				sb.append(" ");
-				sb.append(arg);
-			}
-		}
-
-		return sb.toString();
+		List<String> fullClassPath = new ArrayList<>();
+		fullClassPath.addAll(separateClassPath);
+		fullClassPath.add(pathAccumulator.get());
+		return new JavaExecutor(null, javaArgs, fullClassPath.toArray(new String[0]), mainClass, args);
 	}
 
 	public void configureJavaArgs(JavaOption javaOptions) {
@@ -150,6 +167,12 @@ public abstract class JavaCommandBuilder {
 		}
 		if (!Strings.isNullOrEmpty(javaOptions.getMaxPermSize())) {
 			addJavaArgs("-XX:MaxPermSize=" + javaOptions.getMaxPermSize());
+		}
+		if (!Strings.isNullOrEmpty(javaOptions.getTmpDir())) {
+			addJavaArgs("-Djava.io.tmpdir=" + javaOptions.getTmpDir());
+		}
+		if (!Strings.isNullOrEmpty(javaOptions.getUserDir())) {
+			addJavaArgs("-Duser.dir=" + javaOptions.getUserDir());
 		}
 		if (javaOptions.isDebugJava()) {
 			StringBuilder sb = new StringBuilder();
