@@ -16,11 +16,10 @@ package fr.putnami.gwt.gradle.helper;
 
 import com.google.common.collect.Lists;
 
+import org.gradle.api.Action;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ConfigurationContainer;
-import org.gradle.api.artifacts.Dependency;
-import org.gradle.api.artifacts.DependencySet;
 import org.gradle.api.artifacts.ProjectDependency;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.plugins.JavaPlugin;
@@ -35,6 +34,7 @@ import fr.putnami.gwt.gradle.PwtLibPlugin;
 import fr.putnami.gwt.gradle.action.JavaAction;
 import fr.putnami.gwt.gradle.extension.DevOption;
 import fr.putnami.gwt.gradle.extension.PutnamiExtension;
+import fr.putnami.gwt.gradle.task.GwtCompileTask;
 import fr.putnami.gwt.gradle.util.ResourceUtils;
 
 public class CodeServerBuilder extends JavaCommandBuilder {
@@ -53,16 +53,20 @@ public class CodeServerBuilder extends JavaCommandBuilder {
 			.getPlugin(JavaPluginConvention.class).getSourceSets().getByName(SourceSet.MAIN_SOURCE_SET_NAME);
 		FileCollection sources = project.files(mainSourceSet.getAllJava().getSrcDirs());
 
+		setPathingJar(devOption.getPathingJar());
 		configureJavaArgs(devOption);
 
 		addClassPath(mainSourceSet.getOutput().getAsPath());
 		addClassPath(mainSourceSet.getAllJava().getSrcDirs());
 		addClassPath(mainSourceSet.getCompileClasspath().getAsPath());
 		addClassPath(sdmConf.getAsPath());
+		
+		Configuration gwtSource = project.getConfigurations().getByName(GwtCompileTask.GWT_SOURCE_CONFIG);
+		addSeparateClassPath(gwtSource.getAsPath());
 
 		addSrc(sources);
-		addSrc(listProjectDepsSrcDirs(project));
-
+//		addSrc(listProjectDepsSrcDirs(project));
+		
 		addArg("-bindAddress", devOption.getBindAddress());
 		addArgIf(devOption.getFailOnError(), "-failOnError", "-nofailOnError");
 		addArgIf(devOption.getPrecompile(), "-precompile", "-noprecompile");
@@ -93,26 +97,26 @@ public class CodeServerBuilder extends JavaCommandBuilder {
 	}
 
 	public JavaAction buildJavaAction() {
-		return new JavaAction(this.toString());
+		return new JavaAction(this.toJava());
 	}
 
 	private Collection<File> listProjectDepsSrcDirs(Project project) {
 		ConfigurationContainer configs = project.getConfigurations();
 		Configuration compileConf = configs.getByName(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME);
-		DependencySet depSet = compileConf.getAllDependencies();
 
-		List<File> result = Lists.newArrayList();
-		for (Dependency dep : depSet) {
-			if (dep instanceof ProjectDependency) {
-				Project projectDependency = ((ProjectDependency) dep).getDependencyProject();
-				if (projectDependency.getPlugins().hasPlugin(PwtLibPlugin.class)) {
+		final List<File> result = Lists.newArrayList();
+		compileConf.getAllDependencies().withType(ProjectDependency.class, new Action<ProjectDependency>() {
+			@Override
+			public void execute(ProjectDependency dep) {
+				Project projectDependency = dep.getDependencyProject();
+				if (projectDependency.getPlugins().hasPlugin(JavaPlugin.class)) {
 					JavaPluginConvention javaConvention = projectDependency.getConvention().getPlugin(JavaPluginConvention.class);
 					SourceSet mainSourceSet = javaConvention.getSourceSets().getByName(SourceSet.MAIN_SOURCE_SET_NAME);
-
+					
 					result.addAll(mainSourceSet.getAllSource().getSrcDirs());
 				}
 			}
-		}
+		});
 		return result;
 	}
 

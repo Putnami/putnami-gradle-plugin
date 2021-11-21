@@ -23,7 +23,92 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
+import fr.putnami.gwt.gradle.helper.JavaExecutor;
+
 public class JavaAction implements Action<Task> {
+
+	private final JavaExecutor javaCommand;
+
+	private Process process;
+
+	private ProcessLogger errorLogger = new ProcessLogger();
+	private ProcessLogger infoLogger = new ProcessLogger();
+
+	public JavaAction(JavaExecutor java) {
+		super();
+		this.javaCommand = java;
+	}
+
+	public JavaAction(String mainClass) {
+		this(new JavaExecutor(mainClass));
+	}
+
+	@Override
+	public void execute(Task task) {
+		try {
+			task.getLogger().info(javaCommand.getCommandLine());
+			process = javaCommand.runProcess();
+
+			Runtime.getRuntime().addShutdownHook(new Thread() {
+				@Override
+				public void run() {
+					kill();
+				}
+			});
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		errorLogger.setStream(process.getErrorStream());
+		errorLogger.setLevel(LogLevel.ERROR);
+		errorLogger.start();
+		infoLogger.setStream(process.getInputStream());
+		errorLogger.setLevel(LogLevel.INFO);
+		infoLogger.start();
+	}
+
+	public void setErrorLogger(ProcessLogger errorLogger) {
+		this.errorLogger = errorLogger;
+	}
+
+	public void setInfoLogger(ProcessLogger infoLogger) {
+		this.infoLogger = infoLogger;
+	}
+
+	public void kill() {
+		errorLogger.quitLogger();
+		infoLogger.quitLogger();
+		if (process != null) {
+			process.destroy();
+			join();
+		}
+	}
+
+	public void join() {
+		if (process != null) {
+			try {
+				process.waitFor();
+			} catch (InterruptedException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
+
+	public int exitValue() {
+		return (process == null) ? 0 : process.exitValue();
+	}
+
+	public boolean isAlive() {
+		if (process == null) {
+			return false;
+		}
+		
+		try {
+			process.exitValue();
+			return false;
+		} catch (IllegalThreadStateException e) {
+			return true;
+		}
+	}
 
 	public static class ProcessLogger extends Thread {
 		private InputStream stream;
@@ -62,81 +147,6 @@ public class JavaAction implements Action<Task> {
 
 		public void quitLogger() {
 			quit = true;
-		}
-	}
-
-	private final String javaCommand;
-
-	private Process process;
-
-	private ProcessLogger errorLogger = new ProcessLogger();
-	private ProcessLogger infoLogger = new ProcessLogger();
-
-	public JavaAction(String javaCommand) {
-		super();
-		this.javaCommand = javaCommand;
-	}
-
-	@Override
-	public void execute(Task task) {
-		try {
-			task.getLogger().info(javaCommand);
-			process = Runtime.getRuntime().exec(javaCommand);
-
-			Runtime.getRuntime().addShutdownHook(new Thread() {
-				@Override
-				public void run() {
-					kill();
-				}
-			});
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-		errorLogger.setStream(process.getErrorStream());
-		errorLogger.setLevel(LogLevel.ERROR);
-		errorLogger.start();
-		infoLogger.setStream(process.getInputStream());
-		errorLogger.setLevel(LogLevel.INFO);
-		infoLogger.start();
-	}
-
-	public void setErrorLogger(ProcessLogger errorLogger) {
-		this.errorLogger = errorLogger;
-	}
-
-	public void setInfoLogger(ProcessLogger infoLogger) {
-		this.infoLogger = infoLogger;
-	}
-
-	public void kill() {
-		errorLogger.quitLogger();
-		infoLogger.quitLogger();
-		process.destroy();
-		try {
-			process.waitFor();
-		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	public void join() {
-		try {
-			process.waitFor();
-		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	public int exitValue() {
-		return process.exitValue();
-	}
-
-	public boolean isAlive() {
-		try {
-			process.exitValue();
-			return false;
-		} catch (IllegalThreadStateException e) {
-			return true;
 		}
 	}
 

@@ -20,10 +20,10 @@ import org.gradle.api.Action;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ProjectDependency;
-import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.internal.ConventionMapping;
 import org.gradle.api.internal.IConventionAware;
+import org.gradle.api.internal.file.UnionFileCollection;
 import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.plugins.JavaPluginConvention;
 import org.gradle.api.tasks.Input;
@@ -46,6 +46,7 @@ import fr.putnami.gwt.gradle.helper.CompileCommandBuilder;
 public class GwtCompileTask extends AbstractTask {
 
 	public static final String NAME = "gwtCompile";
+	public static final String GWT_SOURCE_CONFIG = "gwtSource";
 
 	private List<String> modules;
 	private File war;
@@ -73,7 +74,7 @@ public class GwtCompileTask extends AbstractTask {
 		compileAction.execute(this);
 		compileAction.join();
 		if (compileAction.exitValue() != 0) {
-			throw new RuntimeException("Fail to compile GWT modules");
+			throw new RuntimeException("Failed to compile GWT modules");
 		}
 
 		getProject().getTasks().getByName(GwtCheckTask.NAME).setEnabled(false);
@@ -83,16 +84,18 @@ public class GwtCompileTask extends AbstractTask {
 		final CompilerOption options = extention.getCompile();
 		options.init(project);
 		options.setLocalWorkers(evalWorkers(options));
+		
+		final FileCollection sourceJars = new UnionFileCollection();
 
-		final ConfigurableFileCollection sources = project.files();
-		addSourceSet(sources, project, SourceSet.MAIN_SOURCE_SET_NAME);
+		final FileCollection sources = new UnionFileCollection(project.files());
+		addSourceSet(sources, sourceJars, project, SourceSet.MAIN_SOURCE_SET_NAME);
 
-		final Configuration compileClasspath = project.getConfigurations().getByName(
-			JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME);
-		compileClasspath.getDependencies().withType(ProjectDependency.class, new Action<ProjectDependency>() {
+		Configuration compileClasspath = project.getConfigurations().getByName(
+				JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME);
+		compileClasspath.getAllDependencies().withType(ProjectDependency.class, new Action<ProjectDependency>() {
 			@Override
 			public void execute(ProjectDependency dep) {
-				addSourceSet(sources, dep.getDependencyProject(), SourceSet.MAIN_SOURCE_SET_NAME);
+				addSourceSet(sources, sourceJars, dep.getDependencyProject(), SourceSet.MAIN_SOURCE_SET_NAME);
 			}
 		});
 
@@ -118,12 +121,12 @@ public class GwtCompileTask extends AbstractTask {
 		});
 	}
 
-	private void addSourceSet(FileCollection sources, Project project, String sourceSet) {
+	private void addSourceSet(FileCollection sources, FileCollection sourceJars, Project project, String sourceSetName) {
 		JavaPluginConvention javaConvention = project.getConvention().getPlugin(JavaPluginConvention.class);
-		SourceSet mainSourceSet = javaConvention.getSourceSets().getByName(sourceSet);
-		sources.add(project.files(mainSourceSet.getOutput().getResourcesDir()))
-			.plus(project.files(mainSourceSet.getOutput().getClassesDirs()))
-			.plus(project.files(mainSourceSet.getAllSource().getSrcDirs()));
+		SourceSet sourceSet = javaConvention.getSourceSets().getByName(sourceSetName);
+		sources.add(project.files(sourceSet.getOutput().getResourcesDir()))
+			.add(project.files(sourceSet.getOutput().getClassesDirs()))
+			.add(project.files(sourceSet.getAllSource().getSrcDirs()));
 	}
 
 	private int evalWorkers(CompilerOption options) {

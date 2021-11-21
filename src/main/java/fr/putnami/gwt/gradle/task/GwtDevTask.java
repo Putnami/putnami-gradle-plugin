@@ -18,7 +18,10 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
+import org.gradle.api.Action;
 import org.gradle.api.Project;
+import org.gradle.api.artifacts.Configuration;
+import org.gradle.api.artifacts.ProjectDependency;
 import org.gradle.api.internal.ConventionMapping;
 import org.gradle.api.internal.IConventionAware;
 import org.gradle.api.plugins.JavaPlugin;
@@ -77,7 +80,7 @@ public class GwtDevTask extends AbstractTask {
 
 	private void createWarExploded(DevOption sdmOption) throws IOException {
 		WarPluginConvention warConvention = getProject().getConvention().getPlugin(WarPluginConvention.class);
-		JavaPluginConvention javaConvention = getProject().getConvention().getPlugin(JavaPluginConvention.class);
+		final JavaPluginConvention javaConvention = getProject().getConvention().getPlugin(JavaPluginConvention.class);
 
 		File warDir = sdmOption.getWar();
 
@@ -88,7 +91,7 @@ public class GwtDevTask extends AbstractTask {
 			ResourceUtils.deleteDirectory(webInfDir);
 		} else {
 			SourceSet mainSourceSet = javaConvention.getSourceSets().getByName("main");
-			File classesDir = ResourceUtils.ensureDir(new File(warDir, "WEB-INF/classes"));
+			final File classesDir = ResourceUtils.ensureDir(new File(warDir, "WEB-INF/classes"));
 			for (File file : mainSourceSet.getResources().getSrcDirs()) {
 				ResourceUtils.copyDirectory(file, classesDir);
 			}
@@ -108,6 +111,27 @@ public class GwtDevTask extends AbstractTask {
 					ResourceUtils.copy(file, new File(libDir, file.getName()));
 				}
 			}
+			
+			Configuration config = getProject().getConfigurations().getByName(mainSourceSet.getRuntimeClasspathConfigurationName());
+			config.getAllDependencies().withType(ProjectDependency.class, new Action<ProjectDependency>() {
+				@Override
+				public void execute(ProjectDependency dep) {
+					JavaPluginConvention depConvention = dep.getDependencyProject().getConvention().getPlugin(JavaPluginConvention.class);
+					SourceSet depSourceSet = depConvention.getSourceSets().getByName("main");
+					try {
+						for (File file : depSourceSet.getOutput().getClassesDirs()) {
+							System.out.println("Copying " + file + " from classes dir to classes");
+							ResourceUtils.copyDirectory(file, classesDir);
+						}
+						for (File file : depSourceSet.getResources().getSourceDirectories()) {
+							System.out.println("Copying " + file + " from resources dir to classes");
+							ResourceUtils.copyDirectory(file, classesDir);
+						}
+					} catch (IOException e) {
+						throw new RuntimeException(e);
+					}
+				}
+			});
 		}
 	}
 

@@ -23,6 +23,9 @@ public class JavaOption {
 
 	private final List<String> javaArgs = Lists.newArrayList();
 
+	private String tmpDir;
+	private String userDir;
+	private String pathingJar;
 	private String maxHeapSize;
 	private String minHeapSize;
 	private String maxPermSize;
@@ -36,6 +39,30 @@ public class JavaOption {
 
 	public void setJavaArgs(String... javaArgs) {
 		this.javaArgs.addAll(Arrays.asList(javaArgs));
+	}
+
+	public String getTmpDir() {
+		return tmpDir;
+	}
+
+	public void setTmpDir(String tmpDir) {
+		this.tmpDir = tmpDir;
+	}
+
+	public String getUserDir() {
+		return userDir;
+	}
+
+	public void setUserDir(String userDir) {
+		this.userDir = userDir;
+	}
+
+	public String getPathingJar() {
+		return pathingJar;
+	}
+
+	public void setPathingJar(String pathingJar) {
+		this.pathingJar = pathingJar;
 	}
 
 	public String getMaxHeapSize() {
